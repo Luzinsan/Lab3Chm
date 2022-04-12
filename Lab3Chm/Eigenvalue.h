@@ -203,7 +203,7 @@ namespace luMath
                 }
                 *_fout << "\n\n\tСобственное число #" << n << ": " << (*eigenvalues)[i - 1] << "\n\t-> Кратность: " << _k;
                 k.push_back(_k);
-                *_fout << "\n\tПроверка: " << getDeterminant(((*A) - E * (*eigenvalues)[i - 1]));
+                *_fout << "\n\tПроверка: " << getDeterminant(((*A) - E * (*eigenvalues)[i - 1])) << "\n";
             }
             return (*eigenvalues);
         }
@@ -225,8 +225,11 @@ namespace luMath
             delete[] y;
             int index = 0;
             for (int i = 0; i < m; i += k[index++])
-                *_fout << "\n\tСобственное число #" << index+1 << " : " << (*eigenvalues)[i] << "\n\t-> Кратность: " << k[index]
-                          << "\n\tСоответствующий собственный вектор:\n" << x[i];
+            {
+                *_fout << "\n\tСобственное число #" << index + 1 << " : " << (*eigenvalues)[i] << "\n\t-> Кратность: " << k[index]
+                    << "\n\tСоответствующий собственный вектор:\n" << x[i];
+                *_fout << "\nПроверка:\n" << (*A) * x[i] - (*eigenvalues)[i] * x[i];
+            }
             return x;
         }
 
