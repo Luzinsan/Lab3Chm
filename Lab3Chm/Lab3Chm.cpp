@@ -12,6 +12,7 @@ int main()
         matrix.getEigenvalues();
         break;
     case Eigenvalue<double>::TASK::EIGENVECTORS:
+        matrix.getEigenvalues();
         matrix.getEigenvectors();
         break;
     }
