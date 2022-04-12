@@ -9,7 +9,7 @@ int main()
     switch (data.getTask())
     {
     case Eigenvalue<double>::TASK::EIGENVALUES:
-        data.GetFrobenius();
+        data.MethodDanilevsky();
         break;
     case Eigenvalue<double>::TASK::EIGENVECTORS:
         //data.getDeterminant();
