@@ -5,6 +5,11 @@
 #include "../../../2/Lab2Chm/Lab2Chm/Matrix.h"
 #include "../../../2/Lab2Chm/Lab2Chm/Vector.h"
 
+#include "Polynomial.h"
+#include "PolStr.h"
+#define EPS 1E-3
+#define MAX 10
+
 namespace luMath
 {
     double unit_matrix_initer(size_t m, size_t n, size_t r, size_t c)
@@ -72,6 +77,140 @@ namespace luMath
         }
         
         TASK getTask() { return _task; }
+
+        static T getDeterminant(const Matrix<T>& _Matrix) // Через метод Гаусса
+        {
+            Matrix<T> A(_Matrix);
+            T determinant = 1;
+            // Прямой ход метода Гаусса - преобразование матрицы к треугольному виду
+            for (int i = 0; i < A.getRows(); i++) // проходим по всем строкам
+            {
+                T coeff = A[i][i]; // запоминаем коэффициент по диагонали
+                determinant *= coeff;
+                for (int j = i; j < A.getRows(); j++) // проходим по всем элементам текущей строки, включая вектор коэффициентов
+                    A[i][j] /= coeff;
+                for (int j = i + 1; j < A.getRows(); j++)
+                {
+                    coeff = A[j][i]; 
+                    for (int k = i; k < A.getCols(); k++) 
+                        A[j][k] -= coeff * A[i][k]; 
+                }
+            }
+            return determinant;
+        }
+
+        
+        void MethodDanilevsky() // Получение собственных чисел
+        {
+            *_fout << "\t\tМетод Данилевского для нахождения собственных чисел.\n";
+            Matrix<T> P = GetFrobenius();
+            *_fout << "\n\tМатрица Фробениуса:\n"
+                << P;
+           
+            T* array = new T[m+1];
+           
+            array[m] = (m % 2 == 0) ? 1 : -1;
+            for (int i = m-1; i >= 0; i--)
+                array[i] = P[0][m-i-1];
+            
+            Polynomial<T> pol(m+1, array);
+            delete[] array;
+            
+
+            std::string ss = pol.to_string();
+            
+            const char* polStr = CreatePolStr(ss.c_str(), 0);
+            Vector<T> eigenvalue(m);
+            if (GetError() == ERR_OK && polStr)
+            {
+                int n = 0; //номер корня
+                double x0 = 0; // Начальное приближение
+                double x1 = x0;
+                bool flag = false; // было ли на предыдущей итерации найдено приближение корня в промежутке (-EPS, EPS)
+                T root1 = EvalPolStr(polStr, x0, 0);
+                T root2 = root1;
+                for (x1 = EPS; n < m && x1 < MAX ; x1 += EPS)
+                {
+                    root1 = root2;
+                    root2 = EvalPolStr(polStr, x1, 0);
+                    if (abs(root2) <= EPS && abs(root2) < abs(root1))
+                    {
+                        x0 = x1;
+                        flag = true;
+                    }
+                    else if (flag == true)
+                    {
+                        int k = 0;
+                        flag = false;
+                        eigenvalue[n] = x0;
+                        k++; n++;
+
+                        std::cout << EvalPolStr(polStr, x0, k) << "\n";
+                        double eps_b = EPS;
+                        while (abs(EvalPolStr(polStr, x0, k)) < eps_b)
+                        {
+                            std::cout << abs(EvalPolStr(polStr, x0, k)) << "\n";
+                            k++;
+                            eps_b *= 10;
+                        }
+                        for (int i = 0; i < k - 1; i++)
+                            eigenvalue[n++] = x0;
+                    }
+                }
+                for (x1 = EPS; n < m && x1 > -MAX; x1 -= EPS)
+                {
+                    root1 = root2;
+                    root2 = EvalPolStr(polStr, x1, 0);
+                    if (abs(root2) <= EPS && abs(root2) < abs(root1))
+                    {
+                        x0 = x1;
+                        flag = true;
+                    }
+                    else if (flag == true)
+                    {
+                        int k = 0;
+                        flag = false;
+                        eigenvalue[n] = x0;
+                        k++; n++;
+
+                        std::cout << EvalPolStr(polStr, x0, k) << "\n";
+                        double eps_b = EPS;
+                        while (abs(EvalPolStr(polStr, x0, k)) < eps_b)
+                        {
+                            std::cout << abs(EvalPolStr(polStr, x0, k)) << "\n";
+                            k++;
+                            eps_b *= 10;
+                        }
+                        for (int i = 0; i < k-1; i++)
+                            eigenvalue[n++] = x0;
+                    }
+                }
+                
+                n = 1;
+                int k;
+                int i;
+                Matrix<T> E(m, unit_matrix_initer);
+                for (i = 1; i < m; i++) 
+                {
+                    k = 1; 
+                    if (eigenvalue[i] == eigenvalue[i-1])
+                        k++;
+                    else
+                    {
+                        std::cout << "\n\tСобственное число #" << n++ << ": " << eigenvalue[i-1]
+                            << "\n\t-> Кратность: " << k;
+                        std::cout << "\n\tПроверка: \n" << (*A) << "\t-\n" << E << "\n\t*" << eigenvalue[i - 1] << "\n\t";
+                        std::cout << "\n\tПроверка: " << getDeterminant(((*A) - E * eigenvalue[i - 1]));
+                        k = 1;
+                    }
+                }
+                std::cout << "\n\n\tСобственное число #" << n << ": " << eigenvalue[i - 1]
+                    << "\n\t-> Кратность: " << k;
+                std::cout << "\n\tПроверка: \n" << (*A) << "\t-\n" << E << "\n\t*" << eigenvalue[i - 1] << "\n\t";
+                std::cout << "\n\tПроверка: " << getDeterminant(((*A) - E * eigenvalue[i - 1]));
+                std::cout << "\n" << std::setw(5) << eigenvalue;
+            }
+        }
 
         Matrix<T> GetFrobenius()
         {
