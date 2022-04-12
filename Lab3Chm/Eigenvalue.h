@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <cmath>
 
 #include "../../../2/Lab2Chm/Lab2Chm/Matrix.h"
 #include "../../../2/Lab2Chm/Lab2Chm/Vector.h"
@@ -17,6 +18,10 @@ namespace luMath
     double unit_matrix_initer(size_t m, size_t n, size_t r, size_t c)
     {
         return r == c;
+    }
+    double zero_vector_initer(double m, double n)
+    {
+        return 0;
     }
 
     template<class T>
@@ -33,6 +38,7 @@ namespace luMath
         int        m;           // размерность квадратной матрицы
         Matrix<T>* A;           // исходная матрица
         Matrix<T>* P;           // матрица Фробениуса
+        Matrix<T>* S;           // вспомогательная матрица при вычислении матрицы Фробениуса
         Vector<T>* x;           // собственные вектора 
         Vector<T>* eigenvalues; // собственные числа
         std::vector<int> k;     // кратность собственных чисел/векторов
@@ -64,6 +70,8 @@ namespace luMath
             for (int i = 0; i < m; i++)
                 x[i] = Vector<T>(m);
             eigenvalues = new Vector<T>(m);
+            S = new Matrix<T>(m,unit_matrix_initer);
+           
         }
 
         ~Eigenvalue()
@@ -72,6 +80,8 @@ namespace luMath
             delete P;
             delete[] x;
             delete eigenvalues;
+            delete S;
+           
         }
         
         TASK getTask() { return _task; }
@@ -101,20 +111,20 @@ namespace luMath
         Vector<T> getEigenvalues() 
         {
             *_fout << "\t\tМетод Данилевского для нахождения собственных чисел.\n";
-            Matrix<T> P = GetFrobenius();
-            *_fout << "\n\tМатрица Фробениуса:\n" << P;
+            *P = GetFrobenius();
+            *_fout << "\n\tМатрица Фробениуса:\n" << *P;
            
             T* array = new T[m+1];
             array[m] = (m % 2 == 0) ? 1 : -1;
             for (int i = m-1; i >= 0; i--)
-                array[i] = P[0][m-i-1];
+                array[i] = (*P)[0][m-i-1];
             Polynomial<T> pol(m+1, array);
             delete[] array;
 
             std::string ss = pol.to_string();
             const char* polStr = CreatePolStr(ss.c_str(), 0);
 
-            Vector<T> eigenvalue(m);
+            
             if (GetError() == ERR_OK && polStr)
             {
                 int n = 0; //номер корня
@@ -136,7 +146,7 @@ namespace luMath
                     {
                         int k = 0;
                         flag = false;
-                        eigenvalue[n] = x0;
+                        (*eigenvalues)[n] = x0;
                         k++; n++;
                         double eps_b = EPS;
                         while (abs(EvalPolStr(polStr, x0, k)) < eps_b)
@@ -145,7 +155,7 @@ namespace luMath
                             eps_b *= 10;
                         }
                         for (int i = 0; i < k - 1; i++)
-                            eigenvalue[n++] = x0;
+                            (*eigenvalues)[n++] = x0;
                     }
                 }
                 for (x1 = EPS; n < m && x1 > -MAX; x1 -= EPS)
@@ -161,7 +171,7 @@ namespace luMath
                     {
                         int k = 0;
                         flag = false;
-                        eigenvalue[n] = x0;
+                        (*eigenvalues)[n] = x0;
                         k++; n++;
                         double eps_b = EPS;
                         while (abs(EvalPolStr(polStr, x0, k)) < eps_b)
@@ -170,7 +180,7 @@ namespace luMath
                             eps_b *= 10;
                         }
                         for (int i = 0; i < k-1; i++)
-                            eigenvalue[n++] = x0;
+                            (*eigenvalues)[n++] = x0;
                     }
                 }
                 
@@ -181,33 +191,49 @@ namespace luMath
                 for (i = 1; i < m; i++) 
                 {
                     _k = 1; 
-                    if (eigenvalue[i] == eigenvalue[i-1])
+                    if ((*eigenvalues)[i] == (*eigenvalues)[i-1])
                         _k++;
                     else
                     {
-                        *_fout << "\n\tСобственное число #" << n++ << ": " << eigenvalue[i - 1] << "\n\t-> Кратность: " << _k;
+                        *_fout << "\n\tСобственное число #" << n++ << ": " << (*eigenvalues)[i - 1] << "\n\t-> Кратность: " << _k;
                         k.push_back(_k);
-                        *_fout << "\n\tПроверка: " << getDeterminant(((*A) - E * eigenvalue[i - 1]));
+                        *_fout << "\n\tПроверка: " << getDeterminant(((*A) - E * (*eigenvalues)[i - 1]));
                         _k = 1;
                     }
                 }
-                *_fout << "\n\n\tСобственное число #" << n << ": " << eigenvalue[i - 1] << "\n\t-> Кратность: " << _k;
+                *_fout << "\n\n\tСобственное число #" << n << ": " << (*eigenvalues)[i - 1] << "\n\t-> Кратность: " << _k;
                 k.push_back(_k);
-                *_fout << "\n\tПроверка: " << getDeterminant(((*A) - E * eigenvalue[i - 1]));
+                *_fout << "\n\tПроверка: " << getDeterminant(((*A) - E * (*eigenvalues)[i - 1]));
             }
-            return eigenvalue;
+            return (*eigenvalues);
         }
 
         // Получение собственных векторов методом Данилевского 
         Vector<T>* getEigenvectors() 
         {
-            
+            Vector<T>* y = new Vector<T>[m];
+            for (int i = 0; i < m; i++)
+            {
+                y[i] = Vector<T>(m);
+                // Находим собственные вектора для матрицы Фробениуса
+                for (int j = m - 1; j >= 0; j--) 
+                    y[i][j] = pow((*eigenvalues)[i], m-j-1);
+                y[i].transposition();
+                // Вычисляем собственные вектора исходной матрицы
+                x[i] = (*S) * y[i];
+            }
+            delete[] y;
+            int index = 0;
+            for (int i = 0; i < m; i += k[index++])
+                *_fout << "\n\tСобственное число #" << index+1 << " : " << (*eigenvalues)[i] << "\n\t-> Кратность: " << k[index]
+                          << "\n\tСоответствующий собственный вектор:\n" << x[i];
             return x;
         }
 
+
         Matrix<T> GetFrobenius()
         {
-            std::cout << "\n" << std::setw(10) << *A;
+            //std::cout << "\n" << std::setw(10) << *A;
             Matrix<T> P(*A);
             Matrix<T> tempA(*A);
             Matrix<T> M(m), M_1(m);
@@ -227,6 +253,8 @@ namespace luMath
                         //std::cout << "\n"<< std::setw(10) << M << "\n";
                     }
                 P *= M; // ~A^k = A^(k-1) * M_(n-k)
+                (*S) *= M;
+                //std::cout << "\nS:\n" << std::setw(15) << (*S);
                 //std::cout << "\n~A^" << k-1 << " = A^" << k-2 <<" * M_" << k << "\n" << std::setw(10) << P;
                 // Вычисляем M^-1(k)
                 for (int i = 0; i < m; i++)
