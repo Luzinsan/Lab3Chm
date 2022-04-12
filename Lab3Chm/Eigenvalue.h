@@ -2,11 +2,13 @@
 #define EIGENVALUE_H
 #include <iostream>
 #include <fstream>
+#include <vector>
+
 #include "../../../2/Lab2Chm/Lab2Chm/Matrix.h"
 #include "../../../2/Lab2Chm/Lab2Chm/Vector.h"
-
 #include "Polynomial.h"
 #include "PolStr.h"
+
 #define EPS 1E-3
 #define MAX 10
 
@@ -28,12 +30,12 @@ namespace luMath
         };
     private:
         TASK _task;
-        int                m;           // размерность квадратной матрицы
+        int        m;           // размерность квадратной матрицы
         Matrix<T>* A;           // исходная матрица
         Matrix<T>* P;           // матрица Фробениуса
-        Vector<Vector<T>*>* x;           // собственные вектора 
+        Vector<T>* x;           // собственные вектора 
         Vector<T>* eigenvalues; // собственные числа
-        Vector<T>* k;           // кратность собственных чисел/векторов
+        std::vector<int> k;     // кратность собственных чисел/векторов
         std::ofstream* _fout;
 
     public:
@@ -47,33 +49,29 @@ namespace luMath
             _task = static_cast<TASK>(c);
 
             _fin >> m;
-            std::cout << "\n\tПорядок матрицы: " << m;
+            //std::cout << "\n\tПорядок матрицы: " << m;
 
             T* array = new T[m * m];
             for (int i = 0; i < m * m; i++)
                 _fin >> array[i];
-
             _fin.close();
 
             A = new Matrix<T>(m, array);
+            delete[] array;
             P = new Matrix<T>(m);
            
-            //Vector<T>* vectors = new Vector<T>[m];
-            //x = new Vector<T>(m, vectors);
-            //delete vectors;
-
+            x = new Vector<T>[m];
+            for (int i = 0; i < m; i++)
+                x[i] = Vector<T>(m);
             eigenvalues = new Vector<T>(m);
-            k = new Vector<T>(m);
         }
 
         ~Eigenvalue()
         {
             delete A;
             delete P;
-
-            delete x;
+            delete[] x;
             delete eigenvalues;
-            delete k;
         }
         
         TASK getTask() { return _task; }
@@ -99,27 +97,23 @@ namespace luMath
             return determinant;
         }
 
-        
-        void MethodDanilevsky() // Получение собственных чисел
+        // Получение собственных чисел методом Данилевского
+        Vector<T> getEigenvalues() 
         {
             *_fout << "\t\tМетод Данилевского для нахождения собственных чисел.\n";
             Matrix<T> P = GetFrobenius();
-            *_fout << "\n\tМатрица Фробениуса:\n"
-                << P;
+            *_fout << "\n\tМатрица Фробениуса:\n" << P;
            
             T* array = new T[m+1];
-           
             array[m] = (m % 2 == 0) ? 1 : -1;
             for (int i = m-1; i >= 0; i--)
                 array[i] = P[0][m-i-1];
-            
             Polynomial<T> pol(m+1, array);
             delete[] array;
-            
 
             std::string ss = pol.to_string();
-            
             const char* polStr = CreatePolStr(ss.c_str(), 0);
+
             Vector<T> eigenvalue(m);
             if (GetError() == ERR_OK && polStr)
             {
@@ -144,12 +138,9 @@ namespace luMath
                         flag = false;
                         eigenvalue[n] = x0;
                         k++; n++;
-
-                        std::cout << EvalPolStr(polStr, x0, k) << "\n";
                         double eps_b = EPS;
                         while (abs(EvalPolStr(polStr, x0, k)) < eps_b)
                         {
-                            std::cout << abs(EvalPolStr(polStr, x0, k)) << "\n";
                             k++;
                             eps_b *= 10;
                         }
@@ -172,12 +163,9 @@ namespace luMath
                         flag = false;
                         eigenvalue[n] = x0;
                         k++; n++;
-
-                        std::cout << EvalPolStr(polStr, x0, k) << "\n";
                         double eps_b = EPS;
                         while (abs(EvalPolStr(polStr, x0, k)) < eps_b)
                         {
-                            std::cout << abs(EvalPolStr(polStr, x0, k)) << "\n";
                             k++;
                             eps_b *= 10;
                         }
@@ -187,29 +175,34 @@ namespace luMath
                 }
                 
                 n = 1;
-                int k;
+                int _k;
                 int i;
                 Matrix<T> E(m, unit_matrix_initer);
                 for (i = 1; i < m; i++) 
                 {
-                    k = 1; 
+                    _k = 1; 
                     if (eigenvalue[i] == eigenvalue[i-1])
-                        k++;
+                        _k++;
                     else
                     {
-                        std::cout << "\n\tСобственное число #" << n++ << ": " << eigenvalue[i-1]
-                            << "\n\t-> Кратность: " << k;
-                        std::cout << "\n\tПроверка: \n" << (*A) << "\t-\n" << E << "\n\t*" << eigenvalue[i - 1] << "\n\t";
-                        std::cout << "\n\tПроверка: " << getDeterminant(((*A) - E * eigenvalue[i - 1]));
-                        k = 1;
+                        *_fout << "\n\tСобственное число #" << n++ << ": " << eigenvalue[i - 1] << "\n\t-> Кратность: " << _k;
+                        k.push_back(_k);
+                        *_fout << "\n\tПроверка: " << getDeterminant(((*A) - E * eigenvalue[i - 1]));
+                        _k = 1;
                     }
                 }
-                std::cout << "\n\n\tСобственное число #" << n << ": " << eigenvalue[i - 1]
-                    << "\n\t-> Кратность: " << k;
-                std::cout << "\n\tПроверка: \n" << (*A) << "\t-\n" << E << "\n\t*" << eigenvalue[i - 1] << "\n\t";
-                std::cout << "\n\tПроверка: " << getDeterminant(((*A) - E * eigenvalue[i - 1]));
-                std::cout << "\n" << std::setw(5) << eigenvalue;
+                *_fout << "\n\n\tСобственное число #" << n << ": " << eigenvalue[i - 1] << "\n\t-> Кратность: " << _k;
+                k.push_back(_k);
+                *_fout << "\n\tПроверка: " << getDeterminant(((*A) - E * eigenvalue[i - 1]));
             }
+            return eigenvalue;
+        }
+
+        // Получение собственных векторов методом Данилевского 
+        Vector<T>* getEigenvectors() 
+        {
+            
+            return x;
         }
 
         Matrix<T> GetFrobenius()
@@ -231,10 +224,10 @@ namespace luMath
                             M[i][j] = -tempA[k][j] / tempA[k][k-1];
                         else //m(i,j) = e(i,j); i = 1,2,...,n; j = 1,2,...,n; i!=k
                             M[i][j] = E[i][j];
-                        std::cout << "\n"<< std::setw(10) << M << "\n";
+                        //std::cout << "\n"<< std::setw(10) << M << "\n";
                     }
                 P *= M; // ~A^k = A^(k-1) * M_(n-k)
-                std::cout << "\n~A^" << k-1 << " = A^" << k-2 <<" * M_" << k << "\n" << std::setw(10) << P;
+                //std::cout << "\n~A^" << k-1 << " = A^" << k-2 <<" * M_" << k << "\n" << std::setw(10) << P;
                 // Вычисляем M^-1(k)
                 for (int i = 0; i < m; i++)
                     for (int j = 0; j < m; j++)
@@ -243,17 +236,14 @@ namespace luMath
                             M_1[i][j] = tempA[k][j];
                         else //m(i,j) = e(i,j); i = 1,2,...,n; j = 1,2,...,n; i!=k
                             M_1[i][j] = E[i][j];
-                        std::cout << "\n" << std::setw(10) << M_1 << "\n";
+                        //std::cout << "\n" << std::setw(10) << M_1 << "\n";
                     }
                 P = M_1 * P; // A^k = M^(-1)_(n-k) * ~A^k 
-                std::cout << "\nA^" << k - 1 << " = M^-1_" << k << " * ~A^" << m-k << "\n" << std::setw(10) << P;
+                //std::cout << "\nA^" << k - 1 << " = M^-1_" << k << " * ~A^" << m-k << "\n" << std::setw(10) << P;
                 tempA = P;
             }
-        
             return P;
         }
-
-        
     };
 }
 #endif

@@ -4,15 +4,15 @@ using namespace luMath;
 int main()
 {
     setlocale(LC_ALL, "Rus");
-    Eigenvalue<double> data;
+    Eigenvalue<double> matrix;
 
-    switch (data.getTask())
+    switch (matrix.getTask())
     {
     case Eigenvalue<double>::TASK::EIGENVALUES:
-        data.MethodDanilevsky();
+        matrix.getEigenvalues();
         break;
     case Eigenvalue<double>::TASK::EIGENVECTORS:
-        //data.getDeterminant();
+        matrix.getEigenvectors();
         break;
     }
     
