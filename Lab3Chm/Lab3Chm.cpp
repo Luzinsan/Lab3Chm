@@ -15,8 +15,11 @@ int main()
         matrix.getEigenvalues();
         matrix.getEigenvectors();
         break;
+    case Eigenvalue<double>::TASK::ROOTS:
+        matrix.GetRoots();
+        break;
     }
-    
+
     return 0;
 }
 
