@@ -5,13 +5,16 @@
 #include <vector>
 #include <cmath>
 
+
 #include "../../../2/Lab2Chm/Lab2Chm/Matrix.h"
 #include "../../../2/Lab2Chm/Lab2Chm/Vector.h"
+#include "Fraction.h"
 #include "Polynomial.h"
 #include "PolStr.h"
 
-#define EPS 1E-3
-#define MAX 10
+#define EPS_B 1E-1
+#define EPS 1E-4
+#define MAX 31
 
 namespace luMath
 {
@@ -32,6 +35,7 @@ namespace luMath
         {
             EIGENVALUES = 1,
             EIGENVECTORS,
+            ROOTS
         };
     private:
         TASK _task;
@@ -41,7 +45,7 @@ namespace luMath
         Matrix<T>* S;           // вспомогательная матрица при вычислении матрицы Фробениуса
         Vector<T>* x;           // собственные вектора 
         Vector<T>* eigenvalues; // собственные числа
-        std::vector<int> k;     // кратность собственных чисел/векторов
+        std::vector<T> k;     // кратность собственных чисел/векторов
         std::ofstream* _fout;
 
     public:
@@ -110,21 +114,34 @@ namespace luMath
         // Получение собственных чисел методом Данилевского
         Vector<T> getEigenvalues() 
         {
+            std::cout << *A << "\n" << *P << "\n";
             *_fout << "\t\tМетод Данилевского для нахождения собственных чисел.\n";
             *P = GetFrobenius();
+            std::cout << *A << "\n" << *P << "\n";
             *_fout << "\n\tМатрица Фробениуса:\n" << *P;
            
-            T* array = new T[m+1];
-            array[m] = (m % 2 == 0) ? 1 : -1;
-            for (int i = m-1; i >= 0; i--)
-                array[i] = (*P)[0][m-i-1];
-            Polynomial<T> pol(m+1, array);
-            delete[] array;
+            /*T* array = new T[m+1];
 
-            std::string ss = pol.to_string();
-            const char* polStr = CreatePolStr(ss.c_str(), 0);
 
             
+            
+            
+            delete[] array;*/
+
+            //std::string ss = pol.to_string();
+            int sign = (m % 2 == 0) ? 1 : -1;
+            Fraction<int>* item = new Fraction<int>(m+1);
+            item[m] = sign;
+            for (int i = m - 1; i >= 0; i--)
+                item[i] = sign * -(*P)[0][m - i - 1];
+            Polynomial<T> pol(m + 1, item);
+            std::cout << pol;
+            std::string ss = "";
+            
+            //std::string ss = Fraction<int>::toFraction(2.5).to_incorrect_fraction_string();
+           
+            const char* polStr = CreatePolStr(ss.c_str(), 0);
+
             if (GetError() == ERR_OK && polStr)
             {
                 int n = 0; //номер корня
@@ -137,24 +154,24 @@ namespace luMath
                 {
                     root1 = root2;
                     root2 = EvalPolStr(polStr, x1, 0);
-                    if (abs(root2) <= EPS && abs(root2) < abs(root1))
+                    if (abs(root2) <= EPS_B && abs(root2) < abs(root1))
                     {
                         x0 = x1;
                         flag = true;
                     }
-                    else if (flag == true)
+                    else if (flag == true || root1*root2<0)
                     {
-                        int k = 0;
+                        int multiplicity = 0;
                         flag = false;
                         (*eigenvalues)[n] = x0;
-                        k++; n++;
-                        double eps_b = EPS;
-                        while (abs(EvalPolStr(polStr, x0, k)) < eps_b)
+                        multiplicity++; n++;
+                        double eps_b = EPS_B;
+                        while (abs(EvalPolStr(polStr, x0, multiplicity)) < eps_b)
                         {
-                            k++;
+                            multiplicity++;
                             eps_b *= 10;
                         }
-                        for (int i = 0; i < k - 1; i++)
+                        for (int i = 0; i < multiplicity - 1; i++)
                             (*eigenvalues)[n++] = x0;
                     }
                 }
@@ -162,28 +179,28 @@ namespace luMath
                 {
                     root1 = root2;
                     root2 = EvalPolStr(polStr, x1, 0);
-                    if (abs(root2) <= EPS && abs(root2) < abs(root1))
+                    if (abs(root2) <= EPS_B && abs(root2) < abs(root1))
                     {
                         x0 = x1;
                         flag = true;
                     }
                     else if (flag == true)
                     {
-                        int k = 0;
+                        int multiplicity = 0;
                         flag = false;
                         (*eigenvalues)[n] = x0;
-                        k++; n++;
-                        double eps_b = EPS;
-                        while (abs(EvalPolStr(polStr, x0, k)) < eps_b)
+                        multiplicity++; n++;
+                        double eps_b = EPS_B;
+                        while (abs(EvalPolStr(polStr, x0, multiplicity)) < eps_b)
                         {
-                            k++;
+                            multiplicity++;
                             eps_b *= 10;
                         }
-                        for (int i = 0; i < k-1; i++)
+                        for (int i = 0; i < multiplicity-1; i++)
                             (*eigenvalues)[n++] = x0;
                     }
                 }
-                
+                delete polStr;
                 n = 1;
                 int _k;
                 int i;
@@ -205,6 +222,7 @@ namespace luMath
                 k.push_back(_k);
                 *_fout << "\n\tПроверка: " << getDeterminant(((*A) - E * (*eigenvalues)[i - 1])) << "\n";
             }
+            
             return (*eigenvalues);
         }
 
@@ -233,6 +251,65 @@ namespace luMath
             return x;
         }
 
+
+
+        Matrix<T> GetRoots() 
+        {
+            std::ifstream _fin("input2.txt");
+            std::ifstream _fout("output2.txt");
+            
+            int n;
+            double _k;
+            _fin >> n;
+            m = 0;
+            delete eigenvalues;
+            eigenvalues = new Vector<T>(n);
+            k.clear();
+            for (int i = 0; i < n; i++)
+            {
+                _fin >> (*eigenvalues)[i] >> _k;
+                k.push_back(_k);
+                m += _k;
+            }
+            
+            
+            Polynomial<T> pol({1});
+            std::cout << pol << "\n";
+            std::string ss = "";
+            for (int i = 0; i < n; i ++)
+            {
+                std::cout << "\n\tСобственное число #" << i+1 << ": " << (*eigenvalues)[i] << "\n\t-> Кратность: " << k[i] << "\n";
+                Polynomial<T> temp_pol({ -(*eigenvalues)[i], 1 });
+                std::cout << temp_pol << "\n";
+                pol *= temp_pol;
+                std::cout << pol << "\n";
+                for (int j = 1; j < k[i]; j++)
+                {
+                    temp_pol = Polynomial<T>({ -(*eigenvalues)[i], 1 });
+                    std::cout << temp_pol << "\n";
+                    pol *= temp_pol;
+                    std::cout << pol << "\n";
+                }
+                std::cout << pol << "\n";
+
+            }
+            int sign;
+            if(pol[m] < 0)
+                sign = (m % 2 == 0) ? 1 : -1;
+            else 
+                sign = ((m + 1) % 2 == 0) ? 1 : -1;
+            
+            Matrix<T> F(m, zero_vector_initer);
+            for (int i = 0; i < m; i++) 
+            {
+                F[0][i] = sign * -pol[m-i-1];
+                if(i < m-1)
+                    F[i + 1][i] = 1;
+                std::cout << std::setw(10) << F;
+            }
+
+            return F;
+        }
 
         Matrix<T> GetFrobenius()
         {
