@@ -410,7 +410,7 @@ namespace luMath
 					if (m_length != max_index + 1)
 					{
 						m_length = max_index + 1;
-						T* new_coeff = new T[m_length];
+						Fraction<T>* new_coeff = new Fraction<T>[m_length];
 						std::swap(new_coeff, m_coeff);
 						for (unsigned j = 0; j < m_length; j++) m_coeff[j] = new_coeff[j];
 						delete[] new_coeff;
@@ -608,12 +608,14 @@ namespace luMath
 				{
 					out << (polynomial.m_coeff[i] > 0 ? " + " : " - ");
 					if ((polynomial.m_coeff[i] > 0 ? polynomial.m_coeff[i] : -polynomial.m_coeff[i]) )
-						out << std::setw(width) << (polynomial.m_coeff[i] > 0 ? polynomial.m_coeff[i] : -polynomial.m_coeff[i]);
+						out << std::setw(width) << (polynomial.m_coeff[i] > 0 
+							? polynomial.m_coeff[i].to_incorrect_fraction_string() 
+							: (-polynomial.m_coeff[i]).to_incorrect_fraction_string());
 				}
 				else
 				{
-					if ((polynomial.m_coeff[i] > 0 ? polynomial.m_coeff[i] : -polynomial.m_coeff[i])   || !i)
-						out << std::setw(width) << polynomial.m_coeff[i];
+					if ((polynomial.m_coeff[i] > 0 ? polynomial.m_coeff[i] : -polynomial.m_coeff[i])  || !i)
+						out << std::setw(width) << polynomial.m_coeff[i].to_incorrect_fraction_string();
 					flag = true;
 				}
 
@@ -671,6 +673,7 @@ namespace luMath
 		{
 			return Polynomial<Fraction<T>>(p1) -= p2;
 		}
+		
 	};
 	
 	template <class T> unsigned Polynomial<Fraction<T>>::s_idCounter = 0;
