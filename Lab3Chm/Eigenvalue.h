@@ -45,7 +45,7 @@ namespace luMath
         Matrix<T>* S;           // вспомогательная матрица при вычислении матрицы Фробениуса
         Vector<T>* x;           // собственные вектора 
         Vector<T>* eigenvalues; // собственные числа
-        std::vector<T> k;     // кратность собственных чисел/векторов
+        std::vector<T> k;       // кратность собственных чисел/векторов
         std::ofstream* _fout;
 
     public:
@@ -85,7 +85,6 @@ namespace luMath
             delete[] x;
             delete eigenvalues;
             delete S;
-           
         }
         
         TASK getTask() { return _task; }
@@ -114,37 +113,26 @@ namespace luMath
         // Получение собственных чисел методом Данилевского
         Vector<T> getEigenvalues() 
         {
-            std::cout << *A << "\n" << *P << "\n";
             *_fout << "\t\tМетод Данилевского для нахождения собственных чисел.\n";
             *P = GetFrobenius();
-            std::cout << *A << "\n" << *P << "\n";
             *_fout << "\n\tМатрица Фробениуса:\n" << *P;
            
-            /*T* array = new T[m+1];
-
-
-            
-            
-            
-            delete[] array;*/
-
-            //std::string ss = pol.to_string();
             int sign = (m % 2 == 0) ? 1 : -1;
-            Fraction<int>* item = new Fraction<int>(m+1);
+            
+            Fraction<int>* item = new Fraction<int>[m+1];
             item[m] = sign;
             for (int i = m - 1; i >= 0; i--)
                 item[i] = sign * -(*P)[0][m - i - 1];
-            Polynomial<T> pol(m + 1, item);
+            Polynomial<Fraction<int>> pol(m + 1, item);
+            delete[] item;
+
             std::cout << pol;
-            std::string ss = "";
-            
-            //std::string ss = Fraction<int>::toFraction(2.5).to_incorrect_fraction_string();
-           
+            std::string ss = pol.to_string();
             const char* polStr = CreatePolStr(ss.c_str(), 0);
 
             if (GetError() == ERR_OK && polStr)
             {
-                int n = 0; //номер корня
+                int n = 0;     // номер корня
                 double x0 = 0; // Начальное приближение
                 double x1 = x0;
                 bool flag = false; // было ли на предыдущей итерации найдено приближение корня в промежутке (-EPS, EPS)
@@ -222,7 +210,6 @@ namespace luMath
                 k.push_back(_k);
                 *_fout << "\n\tПроверка: " << getDeterminant(((*A) - E * (*eigenvalues)[i - 1])) << "\n";
             }
-            
             return (*eigenvalues);
         }
 
