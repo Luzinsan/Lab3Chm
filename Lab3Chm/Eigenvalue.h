@@ -59,7 +59,6 @@ namespace luMath
             _task = static_cast<TASK>(c);
 
             _fin >> m;
-            //std::cout << "\n\tПорядок матрицы: " << m;
 
             T* array = new T[m * m];
             for (int i = 0; i < m * m; i++)
@@ -115,7 +114,7 @@ namespace luMath
         {
             *_fout << "\t\tМетод Данилевского для нахождения собственных чисел.\n";
             *P = GetFrobenius();
-            *_fout << "\n\tМатрица Фробениуса:\n" << *P;
+            *_fout << "\n\tМатрица Фробениуса:\n" << std::setw(10) << *P;
            
             int sign = (m % 2 == 0) ? 1 : -1;
             
@@ -126,7 +125,7 @@ namespace luMath
             Polynomial<Fraction<int>> pol(m + 1, item);
             delete[] item;
 
-            std::cout << pol;
+            *_fout << "\n\tПолученный полином:\t" << pol;
             std::string ss = pol.to_string();
             const char* polStr = CreatePolStr(ss.c_str(), 0);
 
@@ -238,13 +237,9 @@ namespace luMath
             return x;
         }
 
-
-
         Matrix<T> GetRoots() 
         {
             std::ifstream _fin("input2.txt");
-            std::ifstream _fout("output2.txt");
-            
             int n;
             double _k;
             _fin >> n;
@@ -258,27 +253,19 @@ namespace luMath
                 k.push_back(_k);
                 m += _k;
             }
-            
-            
             Polynomial<T> pol({1});
-            std::cout << pol << "\n";
             std::string ss = "";
             for (int i = 0; i < n; i ++)
             {
-                std::cout << "\n\tСобственное число #" << i+1 << ": " << (*eigenvalues)[i] << "\n\t-> Кратность: " << k[i] << "\n";
+                *_fout << "\n\tСобственное число #" << i+1 << ": " << (*eigenvalues)[i] << "\n\t-> Кратность: " << k[i] << "\n";
                 Polynomial<T> temp_pol({ -(*eigenvalues)[i], 1 });
-                std::cout << temp_pol << "\n";
                 pol *= temp_pol;
-                std::cout << pol << "\n";
+                
                 for (int j = 1; j < k[i]; j++)
                 {
                     temp_pol = Polynomial<T>({ -(*eigenvalues)[i], 1 });
-                    std::cout << temp_pol << "\n";
                     pol *= temp_pol;
-                    std::cout << pol << "\n";
                 }
-                std::cout << pol << "\n";
-
             }
             int sign;
             if(pol[m] < 0)
@@ -292,15 +279,13 @@ namespace luMath
                 F[0][i] = sign * -pol[m-i-1];
                 if(i < m-1)
                     F[i + 1][i] = 1;
-                std::cout << std::setw(10) << F;
             }
-
+            *_fout << "\n\tПолученная матрица Фробениуса:\n" << std::setw(10) << F;
             return F;
         }
 
         Matrix<T> GetFrobenius()
         {
-            //std::cout << "\n" << std::setw(10) << *A;
             Matrix<T> P(*A);
             Matrix<T> tempA(*A);
             Matrix<T> M(m), M_1(m);
@@ -317,12 +302,10 @@ namespace luMath
                             M[i][j] = -tempA[k][j] / tempA[k][k-1];
                         else //m(i,j) = e(i,j); i = 1,2,...,n; j = 1,2,...,n; i!=k
                             M[i][j] = E[i][j];
-                        //std::cout << "\n"<< std::setw(10) << M << "\n";
                     }
                 P *= M; // ~A^k = A^(k-1) * M_(n-k)
                 (*S) *= M;
-                //std::cout << "\nS:\n" << std::setw(15) << (*S);
-                //std::cout << "\n~A^" << k-1 << " = A^" << k-2 <<" * M_" << k << "\n" << std::setw(10) << P;
+                
                 // Вычисляем M^-1(k)
                 for (int i = 0; i < m; i++)
                     for (int j = 0; j < m; j++)
@@ -331,10 +314,8 @@ namespace luMath
                             M_1[i][j] = tempA[k][j];
                         else //m(i,j) = e(i,j); i = 1,2,...,n; j = 1,2,...,n; i!=k
                             M_1[i][j] = E[i][j];
-                        //std::cout << "\n" << std::setw(10) << M_1 << "\n";
                     }
                 P = M_1 * P; // A^k = M^(-1)_(n-k) * ~A^k 
-                //std::cout << "\nA^" << k - 1 << " = M^-1_" << k << " * ~A^" << m-k << "\n" << std::setw(10) << P;
                 tempA = P;
             }
             return P;
