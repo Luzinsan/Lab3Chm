@@ -93,7 +93,7 @@ namespace luMath
 				decimal_part = new_number - whole_part;
 				counter += 1;
 			}
-			std::cout << "x: " << number << "\tFraction: " << sign * vec_1[0] << '/' << vec_1[1] << std::endl;
+			//std::cout << "x: " << number << "\tFraction: " << sign * vec_1[0] << '/' << vec_1[1] << std::endl;
 			return Fraction<T>(sign * vec_1[0], vec_1[1]);
 		}
 
@@ -156,12 +156,13 @@ namespace luMath
 		const Fraction<T>& operator=(int number) noexcept
 		{
 			m_numerator = number;
-			m_numerator = 1;
+			m_denominator = 1;
 			return *this;
 		}
 		const Fraction<T>& operator=(double number) noexcept
 		{
-			return Fraction<T>::toFraction(number);
+			*this = Fraction<T>::toFraction(number);
+			return *this;
 		}
 
 		bool is_correct() const noexcept
@@ -235,6 +236,10 @@ namespace luMath
 		Fraction<T> operator-() const noexcept
 		{
 			return Fraction<T>(-m_numerator, m_denominator);
+		}
+		operator bool() 
+		{ 
+			return m_numerator != 0 || m_denominator != 0; 
 		}
 		
 		
